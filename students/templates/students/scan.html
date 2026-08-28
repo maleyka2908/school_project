@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <title>QR Kod Skanetmə və Davamiyyət</title>
+    <!-- QR oxumaq üçün hazır kitabxana (html5-qrcode) -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f7f6; margin-top: 50px; }
+        #reader { width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+        #result { margin-top: 20px; font-size: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Məktəb Giriş - Çıxış Skaneri</h1>
+    <p>Zəhmət olmasa şagirdin QR kodunu kameraya göstərin:</p>
+
+    <div id="reader"></div>
+    <div id="result"></div>
+
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            // QR kod oxunduqda bu funksiya işləyir
+            console.log(`Kod oxundu: ${decodedText}`);
+            
+            // Serverə (Django-ya) AJAX sorğusu göndəririk
+            fetch("{% url 'scan_qr' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: "qr_code=" + encodeURIComponent(decodedText)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById("result");
+                if (data.success) {
+                    resultDiv.style.color = "green";
+                    resultDiv.innerText = data.message;
+                } else {
+                    resultDiv.style.color = "red";
+                    resultDiv.innerText = data.message;
+                }
+                
+                // 3 saniyə sonra nəticə yazısını təmizləyirik ki, növbəti şagird oxunsun
+                setTimeout(() => {
+                    resultDiv.innerText = "";
+                }, 3000);
+            })
+            .catch(error => console.error('Xəta baş verdi:', error));
+        }
+
+        const html5QrCode = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: 250 }
+        );
+        html5QrCode.render(onScanSuccess);
+    </script>
+
+</body>
+</html>
